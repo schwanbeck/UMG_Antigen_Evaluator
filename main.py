@@ -26,12 +26,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import os
-import logging
 import argparse
+import logging
+import os
+
 from electric_eye.EE import ElectricEye
 from electric_eye.helper_func import logging_setup
-
 
 if __name__ == '__main__':
     os.system('CLS')
@@ -71,13 +71,13 @@ if __name__ == '__main__':
         help=f"Used test name/abbreviation",
     )
     args = parser.parse_args()
-    logging_setup('EE', './log', test_abbreviation=str(args.testabbreviation))
+    logging_setup('EE', './log', stream_short=True, test_abbreviation=str(args.testabbreviation))
     log = logging.getLogger(__name__)
     log.info('Session started - please wait')
     ElectricEye(
-        test=True,
+        test=False,
         base_path=args.savepath,
         ext_path=args.basepath,
         test_abbreviation=args.testabbreviation,
-        electric_evaluation=True,
+        electric_evaluation=False,
     )

@@ -27,15 +27,15 @@ SOFTWARE.
 """
 
 import copy
+import functools
 import logging
 import os
 import pickle
 from collections import deque
-from datetime import datetime
-from time import sleep
-from shutil import copy2
 from concurrent.futures import ThreadPoolExecutor
-import functools
+from datetime import datetime
+from shutil import copy2
+from time import sleep
 
 import cv2
 import numpy as np
@@ -43,14 +43,13 @@ from pynput import keyboard
 from pyzbar import pyzbar
 from scipy.signal import find_peaks
 
+from electric_eye.camera import Camera, global_img_centering
+from electric_eye.constants import *
+from electric_eye.graphs import LineManager, put_text, put_text_list, put_rectangle, convert_to_colormap
 from electric_eye.helper_func import (
-    makedir, rollavg, npaverage_weights, safe_str, noneless_result,
+    makedir, npaverage_weights, safe_str, noneless_result,
     check_dict, get_strftime
 )
-
-from electric_eye.camera import Camera, global_img_centering
-from electric_eye.graphs import LineManager, put_text, put_text_list, put_rectangle, convert_to_colormap
-from electric_eye.constants import *
 from electric_eye.setup import Config
 
 tp = ThreadPoolExecutor(10)
@@ -128,8 +127,8 @@ class ElectricEye:
         self.save_vals_ = [i.replace(TEST_ABBR, self.test_abbreviation) for i in self.conf[
             SAVE_VALUES_SECTION_HEADER
         ][SAVE_VALS_ORDER]]
-        print(self.save_vals_)
-        print(self.save_vals)
+        # print(self.save_vals_)
+        # print(self.save_vals)
 
         self.save_vals_electric = [BARCODE, E_ABBREV, IMGTIME, TRESULT, E_RESULT]
 
@@ -281,7 +280,6 @@ class ElectricEye:
                 self.display(edged[:, :], 'wat4')
             sigma = .33
             lower = int(max(0, (1.0 - sigma) * np.median(edged[:, :])))
-            # print(edged.min(), lower, np.median(edged), edged.max())
             _, edged = cv2.threshold(edged, lower, self.ln_img_max, cv2.THRESH_BINARY_INV)
             if self.test:
                 self.display(edged, 'wat5')
@@ -315,6 +313,7 @@ class ElectricEye:
             a, b, c, d = max(a, 0), max(b, 0), max(c, 0), max(d, 0)
             d = min(w, d)
             b = min(h, b)
+
             # ...................... [x, y, w, h]
             self.corner_queue.append([a, b, c, d])
             a, b, c, d = np.average(
@@ -384,6 +383,7 @@ class ElectricEye:
         ).flatten()
 
     def find_peaks(self, first_d_graph):
+        # @todo optionally set to min/max of test peak
         ax_min = min(first_d_graph[:])  # int(self.ln_length / 2)
         ax_min_low = ax_min * self.min_scale_fac
         ax_minhigh = ax_min * self.max_scale_fac
@@ -391,33 +391,7 @@ class ElectricEye:
         ax_max = max(first_d_graph[:])  # int(self.ln_length / 2)
         ax_max_low = ax_max * self.min_scale_fac
         ax_maxhigh = ax_max * self.max_scale_fac
-        # lim_ax = self.ln_deriv_max * .05
 
-        # if ax_maxhigh + abs(ax_minhigh) < lim_ax:
-        #     for ln in [*self.vlines, self.up_triangle, self.down_triangle]:
-        #         ln.set_data(
-        #             [None],
-        #             [None],
-        #         )
-        #     return
-        # graph_threshold = abs(first_d_graph[:int(self.ln_length / 2)]) > min([ax_minhigh, ax_maxhigh])
-
-        # check_val = np.where(
-        #     graph_threshold
-        # )[0]
-        # pos_dots = len([1 for a in check_val if first_d_graph[a] > ax_maxhigh])
-        # neg_dots = len([1 for a in check_val if first_d_graph[a] < ax_minhigh])
-        # low_c = .6
-        # highc = 2 - low_c
-        # # print(pos_dots * low_c, pos_dots, neg_dots, pos_dots * highc)
-        # # print(neg_dots * low_c, pos_dots, neg_dots, neg_dots * highc)
-        # peak_widthtest = pos_dots * low_c <= neg_dots <= pos_dots * highc
-
-        # count_peaks, _ = find_peaks(
-        #     abs(first_d_graph[:]),
-        #     prominence=min([abs(ax_minhigh), ax_maxhigh]),
-        #     # height=ax_max_low,
-        # )
         pos_peaks = find_peaks(
             first_d_graph[:],
             prominence=ax_max_low,
@@ -443,19 +417,18 @@ class ElectricEye:
                 [val, val]
             )
 
+        # @todo set values in settings
         min_control_peak = 10
         max_control_peak = 40
 
-        print('pos contr', any([min_control_peak <= c < max_control_peak for c in pos_peaks]))
-        print('pos contr', any([min_control_peak <= c < max_control_peak for c in neg_peaks]))
         min_test_peak = 50
         max_test_peak = 90
-        print('pos test', any([min_test_peak <= c < max_test_peak for c in pos_peaks]))
-        print('pos test', any([min_test_peak <= c < max_test_peak for c in neg_peaks]))
 
         self.txt_im.set_text(
-            f"Control band: Positive: {any([min_control_peak <= c < max_control_peak for c in pos_peaks])}, Negative: {any([min_control_peak <= c < max_control_peak for c in neg_peaks])}\n"
-            f"Test band: Positive: {any([min_test_peak <= c < max_test_peak for c in pos_peaks])}, Negative: {any([min_test_peak <= c < max_test_peak for c in neg_peaks])}"
+            f"Control band: Positive: {any([min_control_peak <= c < max_control_peak for c in pos_peaks])}, "
+            f"Negative: {any([min_control_peak <= c < max_control_peak for c in neg_peaks])}\n"
+            f"Test band: Positive: {any([min_test_peak <= c < max_test_peak for c in pos_peaks])}, "
+            f"Negative: {any([min_test_peak <= c < max_test_peak for c in neg_peaks])}"
         )
 
         for line, val in zip(self.hlines, [min_control_peak, max_control_peak, min_test_peak, max_test_peak]):
@@ -463,6 +436,7 @@ class ElectricEye:
                 [val, val],
                 [-self.ln_deriv_max, self.ln_deriv_max],
             )
+
     # @threaded
     def analyse_roi(self):
         try:
@@ -504,7 +478,6 @@ class ElectricEye:
             if not self.conf[
                        BARCODE_SECTION_HEADER][MIN_BARCODE_LENGTH] < len(barcode_data) <= self.conf[
                 BARCODE_SECTION_HEADER][MAX_BARCODE_LENGTH]:
-                print(len(barcode_data), barcode_data, 'length')
                 continue
             # elif self.test:
             #     self.log.debug(barcode_data)
@@ -512,7 +485,6 @@ class ElectricEye:
                 try:
                     _ = int(barcode_data)
                 except ValueError:
-                    print(len(barcode_data), barcode_data, 'conversion')
                     continue
             (x, y, w, h) = barcode.rect
             self.display_boxes.append((self.display_frame, x, y, w, h, rgb))

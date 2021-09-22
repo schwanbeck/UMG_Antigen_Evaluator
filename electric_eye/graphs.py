@@ -28,8 +28,8 @@ SOFTWARE.
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 from matplotlib import patheffects
+from matplotlib import pyplot as plt
 
 
 class BlitManager:
@@ -247,7 +247,7 @@ def convert_to_colormap(image, cmap='viridis', convert_to_bgr=True, max_val=255)
     try:
         image = cmap(image)
     except TypeError:
-        print(type(image), image.dtype)
+        # print(type(image), image.dtype)
         image = np.full_like(image, np.NAN)
     image = image * max_val
     image = image.astype(np.uint16)[:, :, :3]

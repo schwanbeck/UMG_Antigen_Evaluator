@@ -26,21 +26,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import logging
-from configparser import ConfigParser
 import os
+import tkinter as tk
+from configparser import ConfigParser
 from functools import wraps
+from tkinter import messagebox
+from tkinter import ttk
+
 from electric_eye.constants import (
     MIN_BARCODE_LENGTH, MAX_BARCODE_LENGTH, BARCODE_ONLY_NUMERIC, SAVE_VALS_ORDER,
-    POSSIBLE_SAVE_VALUES_LIST, SAVE_VALUES_SECTION_HEADER, SAVE_VALUES_JOIN_CHAR,
+    POSSIBLE_SAVE_VALUES_LIST, SAVE_VALUES_JOIN_CHAR,
     SAVE_VALUES_SECTION_HEADER,
-    RESULT_VALUES_SECTION_HEADER,
     BARCODE_SECTION_HEADER,
-    VARIOUS_SECTION_HEADER,
     LINE_LENGTH,
 )
-import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
 
 BASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.ini')
 
@@ -124,7 +123,8 @@ class Config:
                 )
             ]
             for k, v in config_dict.items():
-                print(f"{k}: {v}")
+                # print(f"{k}: {v}")
+                pass
             return config_dict
         except Exception as ex:
             self.log.exception(ex)
@@ -179,7 +179,7 @@ class Program(tk.Tk):
         frame.tkraise()
 
     def close(self, event=None):
-        print('Close called')
+        # print('Close called')
         # print(self.frames[0].position)
         self.destroy()
 
